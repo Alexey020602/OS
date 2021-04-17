@@ -20,7 +20,10 @@ void *proc1(void *params)
         
         uid_t a=geteuid();
         param->buffer=&a;
-        write(param->filedes[1],param->buffer, sizeof(TYPE_OF_BUFFER_DATA));
+        int check=write(param->filedes[1],param->buffer, sizeof(TYPE_OF_BUFFER_DATA));        
+        if(check==EBADF) continue;
+        if(check==EINVAL) continue;
+        if(check==ENOSPC) continue;
         sleep(1);
     }
     cout << "thread 1 end working" << endl;
@@ -35,7 +38,9 @@ void *proc2(void *params)
     while (param->flag == 0)
     {
         //delete (uid_t*)param->buffer;
-        read(param->filedes[0],param->buffer, sizeof(TYPE_OF_BUFFER_DATA));
+        int check=read(param->filedes[0],param->buffer, sizeof(TYPE_OF_BUFFER_DATA));   
+        if(check==EINVAL) continue;
+        if(check==EBADF) continue;
         passwd* a=getpwuid(*param->buffer);
         cout<<a->pw_dir<<endl<<a->pw_gecos<<endl<<a->pw_gid<<endl<<a->pw_name<<endl<<a->pw_passwd<<endl<<a->pw_shell<<endl<<a->pw_uid<<endl;
         sleep(1);
@@ -49,7 +54,6 @@ int main()
 {
     
     cout << "programm 1 start working" << endl;
-    cout<<sizeof(uid_t);
     int flag1 = 0;
     int flag2 = 0;
     int *test1;
@@ -57,7 +61,7 @@ int main()
     pthread_t id1;
     pthread_t id2;
     int* a=new int[2];
-    pipe(a/*,O_NONBLOCK*/);
+    pipe(a);
     uid_t b;
     parameters param1={0, a, &b};
     parameters param2={0, a, &b};
@@ -79,7 +83,7 @@ int main()
     close(a[0]);
     cout << "Pipe 1 destroyed" << endl;
     close(a[1]);
-    cout << "Pipe 2 destroyed" << endl;
+    cout << "Pipe 2 closed" << endl;
     cout << "programm end working" << endl;
     return 0;
 }
